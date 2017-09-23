@@ -27,7 +27,6 @@
         }
     },
     "require-dev": {
-        "phpunit/phpunit": "^6.3",
-        "codeclimate/php-test-reporter": "@dev"
+        "phpunit/phpunit": "^6.3"
     }
 }

@@ -5,15 +5,12 @@ use DevLibs\Routing\Router;
 use DevLibs\Routing\Route;
 use DevLibs\Routing\RouteInterface;
 
-/**
- * @coversDefaultClass DevLibs\Routing\Router
- */
 class RouterTest extends TestCase
 {
     private $class;
 
     /**
-     * @covers ::__construct
+     * @covers DevLibs\Routing\Router::__construct
      */
     public function testEmptyRouter()
     {
@@ -43,13 +40,13 @@ class RouterTest extends TestCase
     }
 
     /**
-     * @covers ::setRouteClass
+     * @covers DevLibs\Routing\Router::setRouteClass
      *
-     * @depends testEmptyRouter
+     * @depends clone testEmptyRouter
      *
      * @param Router $router
      */
-    public function testRouteClass(Router $router)
+    public function testSetRouteClass(Router $router)
     {
         // validate default route class
         $this->assertEquals(Route::class, $this->getPropertyValue($router, 'routeClass'));
@@ -62,24 +59,10 @@ class RouterTest extends TestCase
     }
 
     /**
-     * @covers ::delete
-     * @covers ::dispatch
-     * @covers ::dispatchInternal
-     * @covers ::get
-     * @covers ::handle
-     * @covers ::patch
-     * @covers ::post
-     * @covers ::put
-     * @covers  DevLibs\Routing\Route::getHandler
-     * @covers  DevLibs\Routing\Route::getIsEndWithSlash
-     * @covers  DevLibs\Routing\Route::getParams
-     * @covers  DevLibs\Routing\Route::getSettings
-     * @covers  DevLibs\Routing\Route::setHandler
-     * @covers  DevLibs\Routing\Route::setIsEndWithSlash
-     * @covers  DevLibs\Routing\Route::setParams
-     * @covers  DevLibs\Routing\Route::setSettings
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
      *
-     * @depends testEmptyRouter
+     * @depends clone testEmptyRouter
      *
      * @param Router $router
      */
@@ -143,7 +126,166 @@ class RouterTest extends TestCase
         }
     }
 
-    public function getRoutes()
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testAny(Router $router)
+    {
+        $route = new Route();
+        $route->setHandler('any');
+
+        $router->any('/', $route->getHandler());
+
+        foreach (Router::$methods as $method) {
+            $this->assertEquals($route->getHandler(), $router->dispatch($method, '/')->getHandler());
+        }
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testGetAllowMethods(Router $router)
+    {
+        $path = '/';
+        // round one
+        $this->assertEquals([], $router->getAllowMethods($path));
+
+        // round two
+        $this->assertEquals([], $router->getAllowMethods('/404'));
+
+        // round three
+        $routeGet = new Route();
+        $routeGet->setHandler('get');
+        $router->get($path, $routeGet->getHandler());
+        $this->assertEquals([Router::METHOD_GET], $router->getAllowMethods($path));
+
+        // round four
+        $routePost = new Route();
+        $routePost->setHandler('post');
+        $router->post($path, $routePost->getHandler());
+        $this->assertEquals([Router::METHOD_GET, Router::METHOD_POST], $router->getAllowMethods($path));
+
+        // round five
+        $router->any('/any', 'any');
+        $this->assertEquals(Router::$methods, $router->getAllowMethods('/any'));
+
+        // round six
+        $specifyMethods = [Router::METHOD_GET, Router::METHOD_DELETE, Router::METHOD_POST];
+        $this->assertEquals($specifyMethods, $router->getAllowMethods('/any', $specifyMethods));
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testGroup(Router $router)
+    {
+        // group v1 without settings
+        $group1 = $router->group('v1');
+        $route1 = new Route();
+        $route1->setHandler('v1 homepage');
+        $group1->handle(Router::METHOD_GET, '', $route1->getHandler());
+        $this->assertArrayHasKey('v1', $this->getPropertyValue($router, 'groups'));
+
+        // group v1 round one
+        $v1Round1 = $router->dispatch(Router::METHOD_GET, 'v1');
+        $this->assertEquals($route1, $v1Round1);
+
+        // group v1 round two
+        $v1Round2 = $router->dispatch(Router::METHOD_GET, '/v1');
+        $this->assertEquals($route1, $v1Round2);
+
+        $route1WithSlash = clone $route1;
+        $route1WithSlash->setIsEndWithSlash(true);
+
+        // group v1 round three
+        $v1Round3 = $router->dispatch(Router::METHOD_GET, 'v1/');
+        $this->assertEquals($route1WithSlash, $v1Round3);
+
+        // group v1 round four
+        $v1Round4 = $router->dispatch(Router::METHOD_GET, '/v1/');
+        $this->assertEquals($route1WithSlash, $v1Round4);
+
+
+        // group v2 with specify settings
+        $v2Settings = ['name' => 'bar'];
+        $group2 = $router->group('v2', $v2Settings);
+
+        $v2Route1 = new Route();
+        $v2Route1->setHandler('v2 homepage');
+
+        $v2Route2 = new Route();
+        $v2Route2->setHandler('analyze');
+        $v2Route2->setSettings(['user' => 'bar']);
+
+        $group2->handle(Router::METHOD_GET, '/', $v2Route1->getHandler());
+        $group2->handle(Router::METHOD_GET, '/analyze', $v2Route2->getHandler(), $v2Route2->getSettings());
+
+        // group v2 round one
+        $v2Round1 = $router->dispatch(Router::METHOD_GET, '/v2/');
+        $this->assertEquals($v2Route1->getHandler(), $v2Round1->getHandler());
+        $this->assertEquals($v2Settings, $v2Round1->getSettings());
+
+        // group v2 round two
+        $v2Round2 = $router->dispatch(Router::METHOD_GET, '/v2/analyze');
+        $this->assertEquals($v2Route2->getHandler(), $v2Round2->getHandler());
+        $this->assertEquals(array_merge_recursive($v2Settings, $v2Route2->getSettings()), $v2Round2->getSettings());
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testNestedRouter(Router $router)
+    {
+        // group backend
+        $groupBackend = $router->group('admin');
+        $backendRoute = new Route();
+        $backendRoute->setHandler('backend panel');
+        $groupBackend->get('/', $backendRoute->getHandler());
+        $this->assertEquals($backendRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin')->getHandler());
+
+        $groupUser = $groupBackend->group('users');
+        $userListRoute = new Route();
+        $userListRoute->setHandler('user list');
+        $groupUser->get('/', $userListRoute->getHandler());
+        $this->assertEquals($userListRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin/users')->getHandler());
+    }
+
+    /**
+     * @param Object $obj
+     * @param string $name
+     * @return mixed
+     */
+    private function getPropertyValue(&$obj, $name)
+    {
+        if (!$this->class) {
+            $this->class = new ReflectionClass(Router::class);
+        }
+        $property = $this->class->getProperty($name);
+        $property->setAccessible(true);
+        return $property->getValue($obj);
+    }
+
+    private function getRoutes()
     {
         $methods = [
             Router::METHOD_DELETE,
@@ -359,124 +501,5 @@ class RouterTest extends TestCase
         ];
 
         return $routes;
-    }
-
-    /**
-     * @covers ::__construct
-     * @covers ::dispatch
-     * @covers ::dispatchInternal
-     * @covers ::group
-     * @covers ::handle
-     * @covers  DevLibs\Routing\Route::getHandler
-     * @covers  DevLibs\Routing\Route::getSettings
-     * @covers  DevLibs\Routing\Route::setHandler
-     * @covers  DevLibs\Routing\Route::setIsEndWithSlash
-     * @covers  DevLibs\Routing\Route::setParams
-     * @covers  DevLibs\Routing\Route::setSettings
-     *
-     * @depends testEmptyRouter
-     *
-     * @param Router $router
-     */
-    public function testGroup(Router $router)
-    {
-        // group v1 without settings
-        $group1 = $router->group('v1');
-        $route1 = new Route();
-        $route1->setHandler('v1 homepage');
-        $group1->handle(Router::METHOD_GET, '', $route1->getHandler());
-        $this->assertArrayHasKey('v1', $this->getPropertyValue($router, 'groups'));
-
-        // group v1 round one
-        $v1Round1 = $router->dispatch(Router::METHOD_GET, 'v1');
-        $this->assertEquals($route1, $v1Round1);
-
-        // group v1 round two
-        $v1Round2 = $router->dispatch(Router::METHOD_GET, '/v1');
-        $this->assertEquals($route1, $v1Round2);
-
-        $route1WithSlash = clone $route1;
-        $route1WithSlash->setIsEndWithSlash(true);
-
-        // group v1 round three
-        $v1Round3 = $router->dispatch(Router::METHOD_GET, 'v1/');
-        $this->assertEquals($route1WithSlash, $v1Round3);
-
-        // group v1 round four
-        $v1Round4 = $router->dispatch(Router::METHOD_GET, '/v1/');
-        $this->assertEquals($route1WithSlash, $v1Round4);
-
-
-        // group v2 with specify settings
-        $v2Settings = ['name' => 'bar'];
-        $group2 = $router->group('v2', $v2Settings);
-
-        $v2Route1 = new Route();
-        $v2Route1->setHandler('v2 homepage');
-
-        $v2Route2 = new Route();
-        $v2Route2->setHandler('analyze');
-        $v2Route2->setSettings(['user' => 'bar']);
-
-        $group2->handle(Router::METHOD_GET, '/', $v2Route1->getHandler());
-        $group2->handle(Router::METHOD_GET, '/analyze', $v2Route2->getHandler(), $v2Route2->getSettings());
-
-        // group v2 round one
-        $v2Round1 = $router->dispatch(Router::METHOD_GET, '/v2/');
-        $this->assertEquals($v2Route1->getHandler(), $v2Round1->getHandler());
-        $this->assertEquals($v2Settings, $v2Round1->getSettings());
-
-        // group v2 round two
-        $v2Round2 = $router->dispatch(Router::METHOD_GET, '/v2/analyze');
-        $this->assertEquals($v2Route2->getHandler(), $v2Round2->getHandler());
-        $this->assertEquals(array_merge_recursive($v2Settings, $v2Route2->getSettings()), $v2Round2->getSettings());
-    }
-
-    /**
-     * @covers ::__construct
-     * @covers ::dispatch
-     * @covers ::dispatchInternal
-     * @covers ::get
-     * @covers ::group
-     * @covers ::handle
-     * @covers  DevLibs\Routing\Route::getHandler
-     * @covers  DevLibs\Routing\Route::setHandler
-     * @covers  DevLibs\Routing\Route::setIsEndWithSlash
-     * @covers  DevLibs\Routing\Route::setParams
-     * @covers  DevLibs\Routing\Route::setSettings
-     *
-     * @depends testEmptyRouter
-     *
-     * @param Router $router
-     */
-    public function testNestedRouter(Router $router)
-    {
-        // group backend
-        $groupBackend = $router->group('admin');
-        $backendRoute = new Route();
-        $backendRoute->setHandler('backend panel');
-        $groupBackend->get('/', $backendRoute->getHandler());
-        $this->assertEquals($backendRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin')->getHandler());
-
-        $groupUser = $groupBackend->group('users');
-        $userListRoute = new Route();
-        $userListRoute->setHandler('user list');
-        $groupUser->get('/', $userListRoute->getHandler());
-        $this->assertEquals($userListRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin/users')->getHandler());
-    }
-
-    /**
-     * @param Object $obj
-     * @param string $name
-     * @return mixed
-     */
-    private function getPropertyValue(&$obj, $name)
-    {
-        if (!$this->class) {
-            $this->class = new ReflectionClass(Router::class);
-        }
-        $property = $this->class->getProperty($name);
-        $property->setAccessible(true);
-        return $property->getValue($obj);
     }
 }

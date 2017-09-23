@@ -1,4 +1,5 @@
 <?php
+
 namespace DevLibs\Routing;
 
 class Router
@@ -16,6 +17,21 @@ class Router
     const METHOD_POST = 'POST';
 
     const METHOD_PUT = 'PUT';
+
+    /**
+     * @var array
+     * @see any()
+     * @see getAllowMethods()
+     */
+    public static $methods = [
+        self::METHOD_DELETE,
+        self::METHOD_GET,
+        self::METHOD_HEAD,
+        self::METHOD_OPTIONS,
+        self::METHOD_PATCH,
+        self::METHOD_POST,
+        self::METHOD_PUT,
+    ];
 
     /**
      * @var array mapping from group prefix to group router.
@@ -165,6 +181,20 @@ class Router
     }
 
     /**
+     * A shortcut for registering a handler to handle any request.
+     *
+     * @see handle()
+     *
+     * @param $path
+     * @param $handler
+     * @param null|array $setting
+     */
+    public function any($path, $handler, $setting = null)
+    {
+        $this->handle(self::$methods, $path, $handler, $setting);
+    }
+
+    /**
      * A shortcut for registering a handler to handle GET request.
      *
      * @see handle()
@@ -237,7 +267,7 @@ class Router
     /**
      * @param string $method request method
      * @param string $path request URL without the query string. It's first character should not be "/".
-     * @return mixed|null if matched, returns a route instance which implements RouteInterface, otherwise null will be returned.
+     * @return null|RouteInterface if matched, returns a route instance which implements RouteInterface, otherwise null will be returned.
      */
     public function dispatch($method, $path)
     {
@@ -269,15 +299,11 @@ class Router
      */
     private function dispatchInternal($method, $path, $settings)
     {
-        if ($this->combinedPattern === null) {
-            if (empty($this->patterns)) {
-                return null;
-            }
-            $this->combinedPattern = "~^(?:" . implode("|", $this->patterns) . ")$~x";
-        }
-
         $path = "{$method} {$path}";
-        if (preg_match($this->combinedPattern, $path, $matches)) {
+        if (null === $pattern = $this->getCombinedPattern()) {
+            return null;
+        }
+        if (preg_match($pattern, $path, $matches)) {
             // retrieves route
             for ($i = 1; $i < count($matches) && $matches[$i] === ''; ++$i) ;
             $route = $this->routes[$i];
@@ -308,7 +334,36 @@ class Router
         return null;
     }
 
-    public function getAllowMethods($path)
+    /**
+     * Detects all allowed methods of the given path.
+     * @param $path
+     * @param null|array $methods
+     * @return array
+     */
+    public function getAllowMethods($path, $methods = null)
+    {
+        if (null === $pattern = $this->getCombinedPattern()) {
+            return [];
+        }
+
+        if ($methods === null) {
+            $methods = self::$methods;
+        }
+
+        $allowMethods = [];
+        foreach ($methods as $method) {
+            if (preg_match($pattern, "{$method} {$path}")) {
+                $allowMethods[] = $method;
+            }
+        }
+        return $allowMethods;
+    }
+
+    /**
+     * @return null|string returns null if no patterns, otherwise,
+     * combines all patterns into one, and returns the combined pattern.
+     */
+    private function getCombinedPattern()
     {
         if ($this->combinedPattern === null) {
             if (empty($this->patterns)) {
@@ -316,9 +371,7 @@ class Router
             }
             $this->combinedPattern = "~^(?:" . implode("|", $this->patterns) . ")$~x";
         }
-        $path = "([GET|POST]) {$path}";
-        var_dump(preg_match_all($this->combinedPattern, $path, $matches));
-        var_dump($this->combinedPattern);
-        return $matches;
+
+        return $this->combinedPattern;
     }
 }
