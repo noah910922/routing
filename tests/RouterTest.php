@@ -40,25 +40,6 @@ class RouterTest extends TestCase
     }
 
     /**
-     * @covers DevLibs\Routing\Router::setRouteClass
-     *
-     * @depends clone testEmptyRouter
-     *
-     * @param Router $router
-     */
-    public function testSetRouteClass(Router $router)
-    {
-        // validate default route class
-        $this->assertEquals(Route::class, $this->getPropertyValue($router, 'routeClass'));
-        // set user-defined route class
-        $specifyClass = 'MyRoute';
-        Router::setRouteClass($specifyClass);
-        $this->assertEquals($specifyClass, $this->getPropertyValue($router, 'routeClass'));
-        // reset for testing
-        Router::setRouteClass(Route::class);
-    }
-
-    /**
      * @covers  DevLibs\Routing\Router
      * @covers  DevLibs\Routing\Route
      *
@@ -113,13 +94,13 @@ class RouterTest extends TestCase
                          * @var RouteInterface $expectRoute
                          */
                         // validate handler
-                        $this->assertEquals($expectRoute->getHandler(), $res->getHandler());
+                        $this->assertEquals($expectRoute->handler(), $res->handler());
                         // validate params
-                        $this->assertEquals($expectRoute->getParams(), $res->getParams());
+                        $this->assertEquals($expectRoute->params(), $res->params());
                         // validate settings
-                        $this->assertEquals($expectRoute->getSettings(), $res->getSettings());
+                        $this->assertEquals($expectRoute->settings(), $res->settings());
                         // validate whether path is end with slash
-                        $this->assertEquals($expectRoute->getIsEndWithSlash(), $res->getIsEndWithSlash());
+                        $this->assertEquals($expectRoute->isEndWithSlash(), $res->isEndWithSlash());
                     }
                 }
             }
@@ -139,10 +120,10 @@ class RouterTest extends TestCase
         $route = new Route();
         $route->setHandler('any');
 
-        $router->any('/', $route->getHandler());
+        $router->any('/', $route->handler());
 
         foreach (Router::$methods as $method) {
-            $this->assertEquals($route->getHandler(), $router->dispatch($method, '/')->getHandler());
+            $this->assertEquals($route->handler(), $router->dispatch($method, '/')->handler());
         }
     }
 
@@ -166,13 +147,13 @@ class RouterTest extends TestCase
         // round three
         $routeGet = new Route();
         $routeGet->setHandler('get');
-        $router->get($path, $routeGet->getHandler());
+        $router->get($path, $routeGet->handler());
         $this->assertEquals([Router::METHOD_GET], $router->getAllowMethods($path));
 
         // round four
         $routePost = new Route();
         $routePost->setHandler('post');
-        $router->post($path, $routePost->getHandler());
+        $router->post($path, $routePost->handler());
         $this->assertEquals([Router::METHOD_GET, Router::METHOD_POST], $router->getAllowMethods($path));
 
         // round five
@@ -192,13 +173,32 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
+    public function testSlashes(Router $router)
+    {
+        $route = new Route();
+        $route->setHandler('slashes1');
+        $router->get('/slashes1', $route->handler());
+        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, 'slashes1')->handler());
+        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, 'slashes1/')->handler());
+        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, '/slashes1')->handler());
+        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, '/slashes1/')->handler());
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
     public function testGroup(Router $router)
     {
         // group v1 without settings
         $group1 = $router->group('v1');
         $route1 = new Route();
         $route1->setHandler('v1 homepage');
-        $group1->handle(Router::METHOD_GET, '', $route1->getHandler());
+        $group1->handle(Router::METHOD_GET, '', $route1->handler());
         $this->assertArrayHasKey('v1', $this->getPropertyValue($router, 'groups'));
 
         // group v1 round one
@@ -232,18 +232,18 @@ class RouterTest extends TestCase
         $v2Route2->setHandler('analyze');
         $v2Route2->setSettings(['user' => 'bar']);
 
-        $group2->handle(Router::METHOD_GET, '/', $v2Route1->getHandler());
-        $group2->handle(Router::METHOD_GET, '/analyze', $v2Route2->getHandler(), $v2Route2->getSettings());
+        $group2->handle(Router::METHOD_GET, '/', $v2Route1->handler());
+        $group2->handle(Router::METHOD_GET, '/analyze', $v2Route2->handler(), $v2Route2->settings());
 
         // group v2 round one
         $v2Round1 = $router->dispatch(Router::METHOD_GET, '/v2/');
-        $this->assertEquals($v2Route1->getHandler(), $v2Round1->getHandler());
-        $this->assertEquals($v2Settings, $v2Round1->getSettings());
+        $this->assertEquals($v2Route1->handler(), $v2Round1->handler());
+        $this->assertEquals($v2Settings, $v2Round1->settings());
 
         // group v2 round two
         $v2Round2 = $router->dispatch(Router::METHOD_GET, '/v2/analyze');
-        $this->assertEquals($v2Route2->getHandler(), $v2Round2->getHandler());
-        $this->assertEquals(array_merge_recursive($v2Settings, $v2Route2->getSettings()), $v2Round2->getSettings());
+        $this->assertEquals($v2Route2->handler(), $v2Round2->handler());
+        $this->assertEquals(array_merge_recursive($v2Settings, $v2Route2->settings()), $v2Round2->settings());
     }
 
     /**
@@ -260,14 +260,14 @@ class RouterTest extends TestCase
         $groupBackend = $router->group('admin');
         $backendRoute = new Route();
         $backendRoute->setHandler('backend panel');
-        $groupBackend->get('/', $backendRoute->getHandler());
-        $this->assertEquals($backendRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin')->getHandler());
+        $groupBackend->get('/', $backendRoute->handler());
+        $this->assertEquals($backendRoute->handler(), $router->dispatch(Router::METHOD_GET, '/admin')->handler());
 
         $groupUser = $groupBackend->group('users');
         $userListRoute = new Route();
         $userListRoute->setHandler('user list');
-        $groupUser->get('/', $userListRoute->getHandler());
-        $this->assertEquals($userListRoute->getHandler(), $router->dispatch(Router::METHOD_GET, '/admin/users')->getHandler());
+        $groupUser->get('/', $userListRoute->handler());
+        $this->assertEquals($userListRoute->handler(), $router->dispatch(Router::METHOD_GET, '/admin/users')->handler());
     }
 
     /**
@@ -306,7 +306,7 @@ class RouterTest extends TestCase
         $routes[] = [
             'methods' => $methods,
             'path' => '/',
-            'handler' => $route1->getHandler(),
+            'handler' => $route1->handler(),
             'settings' => null,
             'urls' => [
                 [
@@ -343,8 +343,8 @@ class RouterTest extends TestCase
         $routes[] = [
             'methods' => [Router::METHOD_GET],
             'path' => '/settings',
-            'handler' => 'settings',
-            'settings' => $route2->getSettings(),
+            'handler' => $route2->handler(),
+            'settings' => $route2->settings(),
             'urls' => [
                 [
                     'url' => '/settings',
@@ -370,7 +370,7 @@ class RouterTest extends TestCase
                 [Router::METHOD_POST, Router::METHOD_PUT],
             ],
             'path' => '/multiple-methods',
-            'handler' => $route3->getHandler(),
+            'handler' => $route3->handler(),
             'settings' => null,
             'urls' => [
                 [
@@ -396,7 +396,7 @@ class RouterTest extends TestCase
         $routes[] = [
             'methods' => [Router::METHOD_GET],
             'path' => '/slash',
-            'handler' => $route4->getHandler(),
+            'handler' => $route4->handler(),
             'settings' => null,
             'urls' => [
                 [
@@ -420,7 +420,7 @@ class RouterTest extends TestCase
         $routes[] = [
             'methods' => [Router::METHOD_GET, Router::METHOD_POST],
             'path' => '/users',
-            'handler' => $route5->getHandler(),
+            'handler' => $route5->handler(),
             'settings' => null,
             'urls' => [
                 [
@@ -445,7 +445,7 @@ class RouterTest extends TestCase
         $routes[] = [ //
             'methods' => [Router::METHOD_DELETE, Router::METHOD_GET, Router::METHOD_PUT],
             'path' => '/users/<user_id:\d+>',
-            'handler' => $route6->getHandler(),
+            'handler' => $route6->handler(),
             'settings' => [],
             'urls' => [
                 [
@@ -482,7 +482,7 @@ class RouterTest extends TestCase
         $routes[] = [
             'methods' => [Router::METHOD_DELETE, Router::METHOD_GET, Router::METHOD_PUT],
             'path' => '/users/<user_id:\d+>/posts/<year:\d{4}>/<month:\d{2}>/<title>',
-            'handler' => $route7->getHandler(),
+            'handler' => $route7->handler(),
             'settings' => [],
             'urls' => [
                 [

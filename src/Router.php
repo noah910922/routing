@@ -1,25 +1,50 @@
 <?php
-
 namespace DevLibs\Routing;
 
+/**
+ * Class Router is a fast, flexible and powerful HTTP router.
+ */
 class Router
 {
+    const SLASH = '/';
+
+    /**
+     * @var string request method DELETE.
+     */
     const METHOD_DELETE = 'DELETE';
 
+    /**
+     * @var string request method GET.
+     */
     const METHOD_GET = 'GET';
 
+    /**
+     * @var string request method HEAD.
+     */
     const METHOD_HEAD = 'HEAD';
 
+    /**
+     * @var string request method OPTIONS.
+     */
     const METHOD_OPTIONS = 'OPTIONS';
 
+    /**
+     * @var string request method PATCH.
+     */
     const METHOD_PATCH = 'PATCH';
 
+    /**
+     * @var string request method POST.
+     */
     const METHOD_POST = 'POST';
 
+    /**
+     * @var string request method PUT.
+     */
     const METHOD_PUT = 'PUT';
 
     /**
-     * @var array
+     * @var array a set of request methods.
      * @see any()
      * @see getAllowMethods()
      */
@@ -88,15 +113,7 @@ class Router
     /**
      * @var string the name of route class which implements RouteInterface
      */
-    private static $routeClass = Route::class;
-
-    /**
-     * @param string $class
-     */
-    public static function setRouteClass($class)
-    {
-        static::$routeClass = $class;
-    }
+    public static $routeClassName = Route::class;
 
     /**
      * Router constructor.
@@ -111,43 +128,38 @@ class Router
     /**
      * Create a group router.
      *
-     * @param string $prefix the group router's prefix should not contains '/'.
+     * @param string $prefix the group router's prefix MUST NOT contains '/'.
      * @param array $settings
-     * @return static a instance of group router
-     *
-     * For example:
-     *     $router = new Router();
-     *     $groupBackend = $router->group('admin');
-     *     $groupBackend->get('/', 'backend panel');
-     *
-     *     It will matches "/admin"
+     * @return static a instance of group router.
      */
     public function group($prefix, array $settings = [])
     {
-        // inherit it's parent's settings.
+        // inherits parent's settings.
         $router = new static(array_merge_recursive($this->settings, $settings));
         $this->groups[$prefix] = $router;
         return $this->groups[$prefix];
     }
 
     /**
-     * Register a handler for handling the specific request which
+     * Registers a handler for handling the specific request which
      * relevant to the given method and path.
      *
-     * @param string|array $method request method
-     * Please convert method to uppercase(recommended) or lowercase, since it is case sensitive.
-     *
-     * Examples:
+     * @param string|array $method request method, is case sensitive,
+     * it is RECOMMENDED to use uppercase.
      *     method              validity
-     *     "GET"               valid(recommended)
-     *     "GET|POST"          valid(recommended)
+     *     "GET"               valid(RECOMMENDED)
+     *     "GET|POST"          valid(RECOMMENDED)
      *     "GET,POST"          invalid
      *     ['GET', 'POST']     valid
      *
-     * @param string $path the regular expression.
-     * Param pattern should be one of "<name>" and "<name:regex>", in default, it will be converted to "([^/]+)" and "(regex)" respectively.
-     * The path will format by @see $replacePatterns and @see $replacements, you can change it in need.
+     * @param string $path the regular expression, the path MUST start with /.
+     * Param pattern MUST be one of "<name>" and "<name:regex>", in default,
+     * it will be converted to "([^/]+)" and "(regex)" respectively.
+     * The path will be converted to a pattern by preg_replace(@see $replacePatterns, @see $replacements),
+     * you can change it in need.
+     *
      * @param mixed $handler request handler.
+     *
      * @param null|array $settings extra data for extending.
      *
      * Examples:
@@ -166,7 +178,7 @@ class Router
         // format path to regular expression.
         $pattern = preg_replace(static::$replacePatterns, static::$replacements, $path);
         // store pattern
-        $this->patterns[$this->routesNextIndex] = "({$method})\\ {$pattern}(/?)";
+        $this->patterns[$this->routesNextIndex] = "({$method})\ {$pattern}(/?)";
 
         // collect param's name.
         preg_match_all('/<([^:]+)(:[^>]+)?>/', $path, $matches);
@@ -181,7 +193,8 @@ class Router
     }
 
     /**
-     * A shortcut for registering a handler to handle any request.
+     * A shortcut for registering a handler to handle any request, in default,
+     * all @see methods will be register, you can change it in need.
      *
      * @see handle()
      *
@@ -265,9 +278,12 @@ class Router
     }
 
     /**
+     * Retrieves handler with the given method and path.
+     *
      * @param string $method request method
-     * @param string $path request URL without the query string. It's first character should not be "/".
-     * @return null|RouteInterface if matched, returns a route instance which implements RouteInterface, otherwise null will be returned.
+     * @param string $path request URL without the query string.
+     * @return null|RouteInterface if matched, returns a route instance which implements RouteInterface,
+     * otherwise null will be returned.
      */
     public function dispatch($method, $path)
     {
@@ -299,20 +315,19 @@ class Router
      */
     private function dispatchInternal($method, $path, $settings)
     {
-        $path = "{$method} {$path}";
         if (null === $pattern = $this->getCombinedPattern()) {
             return null;
         }
-        if (preg_match($pattern, $path, $matches)) {
+        if (preg_match($pattern, $method . ' ' . $this->formatPath($path), $matches)) {
             // retrieves route
-            for ($i = 1; $i < count($matches) && $matches[$i] === ''; ++$i) ;
+            for ($i = 1; $i < count($matches) && ($matches[$i] === ''); ++$i) ;
             $route = $this->routes[$i];
 
             // create a route instance which implements RouterInterface
             /**
              * @var RouteInterface $instance
              */
-            $instance = new static::$routeClass;
+            $instance = new static::$routeClassName;
             $instance->setHandler($route[0]);
 
             // fills up param's value
@@ -336,8 +351,10 @@ class Router
 
     /**
      * Detects all allowed methods of the given path.
+     *
      * @param $path
      * @param null|array $methods
+     *
      * @return array
      */
     public function getAllowMethods($path, $methods = null)
@@ -352,7 +369,7 @@ class Router
 
         $allowMethods = [];
         foreach ($methods as $method) {
-            if (preg_match($pattern, "{$method} {$path}")) {
+            if (preg_match($pattern, $method . ' ' . $this->formatPath($path))) {
                 $allowMethods[] = $method;
             }
         }
@@ -360,6 +377,8 @@ class Router
     }
 
     /**
+     * Get the combined pattern.
+     *
      * @return null|string returns null if no patterns, otherwise,
      * combines all patterns into one, and returns the combined pattern.
      */
@@ -373,5 +392,15 @@ class Router
         }
 
         return $this->combinedPattern;
+    }
+
+    private function formatPath($path)
+    {
+        if ($path == '') {
+            $path = self::SLASH;
+        } elseif ($path[0] != self::SLASH) {
+            $path = '/' . $path;
+        }
+        return $path;
     }
 }

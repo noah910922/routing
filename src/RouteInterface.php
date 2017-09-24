@@ -1,12 +1,15 @@
 <?php
 namespace DevLibs\Routing;
 
+/**
+ * Interface RouteInterface defined
+ */
 interface RouteInterface
 {
     /**
      * @return mixed handler
      */
-    public function getHandler();
+    public function handler();
 
     /**
      * @param $handler
@@ -14,9 +17,9 @@ interface RouteInterface
     public function setHandler($handler);
 
     /**
-     * @return bool determines whether the path is end with slash
+     * @return bool whether or not the path is end with slash
      */
-    public function getIsEndWithSlash();
+    public function isEndWithSlash();
 
     /**
      * @param bool $isEndWithSlash
@@ -26,7 +29,7 @@ interface RouteInterface
     /**
      * @return array params
      */
-    public function getParams();
+    public function params();
 
     /**
      * @param array $params
@@ -36,7 +39,7 @@ interface RouteInterface
     /**
      * @return array settings
      */
-    public function getSettings();
+    public function settings();
 
     /**
      * @param array $settings
