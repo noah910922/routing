@@ -152,7 +152,7 @@ class Router
      *     "GET,POST"          invalid
      *     ['GET', 'POST']     valid
      *
-     * @param string $path the regular expression, the path MUST start with /.
+     * @param string $path the regular expression, the path MUST start with '/'.
      * Param pattern MUST be one of "<name>" and "<name:regex>", in default,
      * it will be converted to "([^/]+)" and "(regex)" respectively.
      * The path will be converted to a pattern by preg_replace(@see $replacePatterns, @see $replacements),
@@ -288,10 +288,10 @@ class Router
     public function dispatch($method, $path)
     {
         // look for group router via the prefix.
-        if ($path != '' && $path != '/' && count($this->groups) > 0) {
-            $start = ($path[0] == '/') ? 1 : 0;
-            if (false !== $pos = strpos($path, '/', $start)) {
-                $len = $pos + 1 - $start - (($path[$pos] == '/') ? 1 : 0);
+        if ($path != '' && $path != self::SLASH && count($this->groups) > 0) {
+            $start = ($path[0] == self::SLASH) ? 1 : 0;
+            if (false !== $pos = strpos($path, self::SLASH, $start)) {
+                $len = $pos + 1 - $start - (($path[$pos] == self::SLASH) ? 1 : 0);
                 $prefix = substr($path, $start, $len);
             } else {
                 $prefix = substr($path, $start);
@@ -341,7 +341,7 @@ class Router
             $instance->setSettings(is_array($route[2]) ? array_merge_recursive($settings, $route[2]) : $settings);
 
             // determines whether the path is end with slash
-            $instance->setIsEndWithSlash($matches[++$i] == '/');
+            $instance->setIsEndWithSlash($matches[++$i] == self::SLASH);
 
             return $instance;
         }
@@ -396,10 +396,8 @@ class Router
 
     private function formatPath($path)
     {
-        if ($path == '') {
-            $path = self::SLASH;
-        } elseif ($path[0] != self::SLASH) {
-            $path = '/' . $path;
+        if ($path != '' && $path[0] != self::SLASH) {
+            $path = self::SLASH . $path;
         }
         return $path;
     }
