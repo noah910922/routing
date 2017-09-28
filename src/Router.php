@@ -152,7 +152,7 @@ class Router
      *     "GET,POST"          invalid
      *     ['GET', 'POST']     valid
      *
-     * @param string $path the regular expression, the path SHOULD start with '/', if not,
+     * @param string $path the regular expression, the path MUST start with '/', if not,
      * the slash '/' will be appended to the head of path.
      * Param pattern MUST be one of "<name>" and "<name:regex>", in default,
      * it will be converted to "([^/]+)" and "(regex)" respectively.
@@ -174,10 +174,6 @@ class Router
     {
         if (is_array($method)) {
             $method = implode('|', $method);
-        }
-
-        if ($path == '' || $path[0] != '/') {
-            $path = '/' . $path;
         }
 
         // format path to regular expression.

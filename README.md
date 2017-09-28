@@ -4,7 +4,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/devlibs/routing/badge.svg?branch=master)](https://coveralls.io/github/devlibs/routing?branch=master)
 
 
-A fast and high scalable and flexible HTTP router for PHP.
+A fast and flexible HTTP router for PHP.
 
 
 ## Features
@@ -40,11 +40,18 @@ that `Could not find package devlibs/routing ...`.
 ## Usage
 
 ```
-use DevLibs\Router\Router;
+use DevLibs\Routing\Router;
 
 $router = new Router();
 
-$router->handle('GET', '', 'homepage');
+// the path MUST start with slash '/'
+$path = '/';
+$router->handle('GET', $path, 'hello world');
+
+// dispatch
+$url = '/';
+$route = $
+```
 
 // RESTful API
 $router->get('users', 'users list'); // GET "users" matched

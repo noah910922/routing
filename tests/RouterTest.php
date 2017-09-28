@@ -85,30 +85,31 @@ class RouterTest extends TestCase
         $methods[] = 'TRACE'; // additional method
         // treats method as path and handler
         foreach ($methods as $method) {
+            $path = '/' . $method;
             switch ($method) {
                 case Router::METHOD_DELETE:
-                    $router->delete($method, $method);
+                    $router->delete($path, $method);
                     break;
                 case Router::METHOD_GET:
-                    $router->get($method, $method);
+                    $router->get($path, $method);
                     break;
                 case Router::METHOD_HEAD:
-                    $router->head($method, $method);
+                    $router->head($path, $method);
                     break;
                 case Router::METHOD_OPTIONS:
-                    $router->options($method, $method);
+                    $router->options($path, $method);
                     break;
                 case Router::METHOD_PATCH:
-                    $router->patch($method, $method);
+                    $router->patch($path, $method);
                     break;
                 case Router::METHOD_POST:
-                    $router->post($method, $method);
+                    $router->post($path, $method);
                     break;
                 case Router::METHOD_PUT:
-                    $router->put($method, $method);
+                    $router->put($path, $method);
                     break;
                 default:
-                    $router->handle($method, $method, $method);
+                    $router->handle($method, $path, $method);
                     break;
             }
         }
@@ -124,26 +125,6 @@ class RouterTest extends TestCase
                 }
             }
         }
-    }
-
-    /**
-     * @covers  DevLibs\Routing\Router
-     * @covers  DevLibs\Routing\Route
-     *
-     * @depends clone testEmptyRouter
-     *
-     * @param Router $router
-     */
-    public function testPathNotStartWithSlash($router)
-    {
-        $route = new Route();
-        $route->setHandler('path not start with slash');
-
-        $path = 'not-start-with-slash';
-
-        $router->handle(Router::METHOD_GET, $path, $route->handler());
-        $this->assertCount(1, $this->getPropertyValue($router, 'routes'));
-        $this->assertEquals($route, $router->dispatch(Router::METHOD_GET, $path));
     }
 
     /**
