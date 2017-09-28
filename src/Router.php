@@ -152,7 +152,8 @@ class Router
      *     "GET,POST"          invalid
      *     ['GET', 'POST']     valid
      *
-     * @param string $path the regular expression, the path MUST start with '/'.
+     * @param string $path the regular expression, the path SHOULD start with '/', if not,
+     * the slash '/' will be appended to the head of path.
      * Param pattern MUST be one of "<name>" and "<name:regex>", in default,
      * it will be converted to "([^/]+)" and "(regex)" respectively.
      * The path will be converted to a pattern by preg_replace(@see $replacePatterns, @see $replacements),
@@ -173,6 +174,10 @@ class Router
     {
         if (is_array($method)) {
             $method = implode('|', $method);
+        }
+
+        if ($path == '' || $path[0] != '/') {
+            $path = '/' . $path;
         }
 
         // format path to regular expression.
@@ -233,6 +238,34 @@ class Router
     public function delete($path, $handler, $setting = null)
     {
         $this->handle(self::METHOD_DELETE, $path, $handler, $setting);
+    }
+
+    /**
+     * A shortcut for registering a handler to handle HEAD request.
+     *
+     * @see handle()
+     *
+     * @param $path
+     * @param $handler
+     * @param null|array $setting
+     */
+    public function head($path, $handler, $setting = null)
+    {
+        $this->handle(self::METHOD_HEAD, $path, $handler, $setting);
+    }
+
+    /**
+     * A shortcut for registering a handler to handle OPTIONS request.
+     *
+     * @see handle()
+     *
+     * @param $path
+     * @param $handler
+     * @param null|array $setting
+     */
+    public function options($path, $handler, $setting = null)
+    {
+        $this->handle(self::METHOD_OPTIONS, $path, $handler, $setting);
     }
 
     /**

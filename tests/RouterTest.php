@@ -47,61 +47,26 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testDispatch(Router $router)
+    public function testHandle($router)
     {
-        // no registered routes, null will be returns
-        $route = $router->dispatch(Router::METHOD_GET, '/');
-        $this->assertEquals(null, $route);
+        $route = new Route();
+        $route->setHandler('handle');
 
-        $routes = $this->getRoutes();
+        $path = '/handle';
 
-        // registers routes
-        foreach ($routes as $route) {
-            foreach ($route['methods'] as $method) {
-                switch ($method) {
-                    case Router::METHOD_DELETE:
-                        $router->delete($route['path'], $route['handler'], $route['settings']);
-                        break;
-                    case Router::METHOD_GET:
-                        $router->get($route['path'], $route['handler'], $route['settings']);
-                        break;
-                    case Router::METHOD_PATCH:
-                        $router->patch($route['path'], $route['handler'], $route['settings']);
-                        break;
-                    case Router::METHOD_POST:
-                        $router->post($route['path'], $route['handler'], $route['settings']);
-                        break;
-                    case Router::METHOD_PUT:
-                        $router->put($route['path'], $route['handler'], $route['settings']);
-                        break;
-                    default:
-                        $router->handle($method, $route['path'], $route['handler'], $route['settings']);
-                        break;
-                }
-            }
+        $router->handle(Router::METHOD_GET, $path, $route->handler());
+        $this->assertCount(1, $this->getPropertyValue($router, 'routes'));
 
-            // dispatch test
-            foreach ($route['urls'] as $url) {
-                foreach ($url['methods'] as $method => $expectRoute) {
-                    /**
-                     * @var RouteInterface|null $res
-                     */
-                    $res = $router->dispatch($method, $url['url']);
-                    if (is_null($expectRoute)) {
-                        $this->assertEquals(null, $res);
-                    } else {
-                        /**
-                         * @var RouteInterface $expectRoute
-                         */
-                        // validate handler
-                        $this->assertEquals($expectRoute->handler(), $res->handler());
-                        // validate params
-                        $this->assertEquals($expectRoute->params(), $res->params());
-                        // validate settings
-                        $this->assertEquals($expectRoute->settings(), $res->settings());
-                        // validate whether path is end with slash
-                        $this->assertEquals($expectRoute->isEndWithSlash(), $res->isEndWithSlash());
-                    }
+        $router->handle(Router::METHOD_POST, $path, $route->handler());
+        $this->assertCount(2, $this->getPropertyValue($router, 'routes'));
+
+        // test dispatch
+        foreach (['handle', '/handle'] as $path) {
+            foreach (Router::$methods as $method) {
+                if (in_array($method, [Router::METHOD_GET, Router::METHOD_POST])) {
+                    $this->assertEquals($route, $router->dispatch($method, $path));
+                } else {
+                    $this->assertEquals(null, $router->dispatch($method, $path));
                 }
             }
         }
@@ -115,15 +80,166 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testAny(Router $router)
+    public function testHandleShortcut($router)
+    {
+        $methods = Router::$methods;
+        $methods[] = 'TRACE'; // additional method
+        // treats method as path and handler
+        foreach ($methods as $method) {
+            switch ($method) {
+                case Router::METHOD_DELETE:
+                    $router->delete($method, $method);
+                    break;
+                case Router::METHOD_GET:
+                    $router->get($method, $method);
+                    break;
+                case Router::METHOD_HEAD:
+                    $router->head($method, $method);
+                    break;
+                case Router::METHOD_OPTIONS:
+                    $router->options($method, $method);
+                    break;
+                case Router::METHOD_PATCH:
+                    $router->patch($method, $method);
+                    break;
+                case Router::METHOD_POST:
+                    $router->post($method, $method);
+                    break;
+                case Router::METHOD_PUT:
+                    $router->put($method, $method);
+                    break;
+                default:
+                    $router->handle($method, $method, $method);
+                    break;
+            }
+        }
+
+        // dispatch
+        foreach ($methods as $method) {
+            foreach ($methods as $path) {
+                $res = $router->dispatch($method, $path);
+                if ($method == $path) {
+                    $this->assertEquals($method, $res->handler());
+                } else {
+                    $this->assertEquals(null, $res);
+                }
+            }
+        }
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testPathNotStartWithSlash($router)
+    {
+        $route = new Route();
+        $route->setHandler('path not start with slash');
+
+        $path = 'not-start-with-slash';
+
+        $router->handle(Router::METHOD_GET, $path, $route->handler());
+        $this->assertCount(1, $this->getPropertyValue($router, 'routes'));
+        $this->assertEquals($route, $router->dispatch(Router::METHOD_GET, $path));
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testParamPlaceholder($router)
+    {
+        // round one, without any param placeholder
+        $route1 = new Route();
+        $route1->setHandler('users');
+        $router->get('/users', $route1->handler());
+        $this->assertEquals($route1, $router->dispatch(Router::METHOD_GET, '/users'));
+
+        // round two, one param placeholder which can matches any type value
+        $route2 = new Route();
+        $route2->setHandler('user profile');
+        $router->get('/users/<username>', $route2->handler());
+        // string
+        $round2Res1 = $router->dispatch(Router::METHOD_GET, '/users/foo');
+        $this->assertEquals($route2->handler(), $round2Res1->handler());
+        $this->assertEquals(['username' => 'foo'], $round2Res1->params());
+        // int
+        $round2Res2 = $router->dispatch(Router::METHOD_GET, '/users/123456');
+        $this->assertEquals($route2->handler(), $round2Res2->handler());
+        $this->assertEquals(['username' => '123456'], $round2Res2->params());
+
+        // round three, one param placeholder which can matches specify type value
+        $route3 = new Route();
+        $route3->setHandler('order detail');
+        // matches integer only
+        $router->get('/orders/<order_id:\d+>', $route3->handler());
+        // string
+        $round3Res1 = $router->dispatch(Router::METHOD_GET, '/orders/bar');
+        $this->assertEquals(null, $round3Res1);
+        // int
+        $round3Res2 = $router->dispatch(Router::METHOD_GET, '/orders/654321');
+        $this->assertEquals($route3->handler(), $round3Res2->handler());
+        $this->assertEquals(['order_id' => '654321'], $round3Res2->params());
+
+        // round four, multiple param placeholders
+        $route4 = new Route();
+        $route4->setHandler('post detail');
+        $router->get('/posts/<year:\d{4}>/<month:\d{2}>/<title>', $route4->handler());
+        // invalid year
+        $round4Res1 = $router->dispatch(Router::METHOD_GET, '/posts/201/09/hello-world');
+        $this->assertEquals(null, $round4Res1);
+        // invalid month
+        $round4Res2 = $router->dispatch(Router::METHOD_GET, '/posts/2017/9/hello-world');
+        $this->assertEquals(null, $round4Res2);
+        // invalid year and month
+        $round4Res3 = $router->dispatch(Router::METHOD_GET, '/posts/201/9/hello-world');
+        $this->assertEquals(null, $round4Res3);
+        // valid year and month
+        $round4Res4 = $router->dispatch(Router::METHOD_GET, '/posts/2017/09/hello-world');
+        $this->assertEquals($route4->handler(), $round4Res4->handler());
+        $this->assertEquals(['year' => '2017', 'month' => '09', 'title' => 'hello-world'], $round4Res4->params());
+
+        // round five, multiple param placeholders which not split by slash
+        $route5 = new Route();
+        $route5->setHandler('post detail');
+        $router->get('/posts/<year:\d{4}><month:\d{2}>/<title>', $route5->handler());
+        // invalid year
+        $round5Res1 = $router->dispatch(Router::METHOD_GET, '/posts/20109/hello-world');
+        $this->assertEquals(null, $round5Res1);
+        // invalid month
+        $round5Res2 = $router->dispatch(Router::METHOD_GET, '/posts/20179/hello-world');
+        $this->assertEquals(null, $round5Res2);
+        // valid year and month
+        $round5Res3 = $router->dispatch(Router::METHOD_GET, '/posts/201709/hello-world');
+        $this->assertEquals($route5->handler(), $round5Res3->handler());
+        $this->assertEquals(['year' => '2017', 'month' => '09', 'title' => 'hello-world'], $round5Res3->params());
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testAny($router)
     {
         $route = new Route();
         $route->setHandler('any');
 
-        $router->any('/', $route->handler());
+        $router->any('/any', $route->handler());
 
         foreach (Router::$methods as $method) {
-            $this->assertEquals($route->handler(), $router->dispatch($method, '/')->handler());
+            $this->assertEquals($route->handler(), $router->dispatch($method, '/any')->handler());
         }
     }
 
@@ -135,7 +251,21 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testGetAllowMethods(Router $router)
+    public function testDispatch($router)
+    {
+        // no patterns
+        $this->assertEquals(null, $router->dispatch(Router::METHOD_GET, '/'));
+    }
+
+    /**
+     * @covers  DevLibs\Routing\Router
+     * @covers  DevLibs\Routing\Route
+     *
+     * @depends clone testEmptyRouter
+     *
+     * @param Router $router
+     */
+    public function testGetAllowMethods($router)
     {
         $path = '/';
         // round one
@@ -173,7 +303,7 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testSlashes(Router $router)
+    public function testSlashes($router)
     {
         $route = new Route();
         $route->setHandler('slashes1');
@@ -192,7 +322,7 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testGroup(Router $router)
+    public function testGroup($router)
     {
         // group v1 without settings
         $group1 = $router->group('v1');
@@ -254,7 +384,7 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testNestedRouter(Router $router)
+    public function testNestedRouter($router)
     {
         // group backend
         $groupBackend = $router->group('admin');
@@ -283,223 +413,5 @@ class RouterTest extends TestCase
         $property = $this->class->getProperty($name);
         $property->setAccessible(true);
         return $property->getValue($obj);
-    }
-
-    private function getRoutes()
-    {
-        $methods = [
-            Router::METHOD_DELETE,
-            Router::METHOD_GET,
-            Router::METHOD_HEAD,
-            Router::METHOD_OPTIONS,
-            Router::METHOD_PATCH,
-            Router::METHOD_POST,
-            Router::METHOD_PUT,
-        ];
-
-        $routes = [];
-
-        // round one
-        $route1 = new Route();
-        $route1->setHandler('homepage');
-        $route1->setIsEndWithSlash(true);
-        $routes[] = [
-            'methods' => $methods,
-            'path' => '/',
-            'handler' => $route1->handler(),
-            'settings' => null,
-            'urls' => [
-                [
-                    'url' => '/',
-                    'methods' => [
-                        Router::METHOD_DELETE => $route1,
-                        Router::METHOD_GET => $route1,
-                        Router::METHOD_HEAD => $route1,
-                        Router::METHOD_OPTIONS => $route1,
-                        Router::METHOD_PATCH => $route1,
-                        Router::METHOD_POST => $route1,
-                        Router::METHOD_PUT => $route1,
-                    ],
-                ],
-                [
-                    'url' => '/404',
-                    'methods' => [
-                        Router::METHOD_DELETE => null,
-                        Router::METHOD_GET => null,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => null,
-                        Router::METHOD_PUT => null,
-                    ],
-                ],
-            ],
-        ];
-
-        // round two with specify settings
-        $route2 = new Route();
-        $route2->setHandler('settings');
-        $route2->setSettings(['name' => 'foo']);
-        $routes[] = [
-            'methods' => [Router::METHOD_GET],
-            'path' => '/settings',
-            'handler' => $route2->handler(),
-            'settings' => $route2->settings(),
-            'urls' => [
-                [
-                    'url' => '/settings',
-                    'methods' => [
-                        Router::METHOD_DELETE => null,
-                        Router::METHOD_GET => $route2,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => null,
-                        Router::METHOD_PUT => null,
-                    ],
-                ],
-            ],
-        ];
-
-        // round three register multiple request methods on one path
-        $route3 = new Route();
-        $route3->setHandler('multiple request methods');
-        $routes[] = [
-            'methods' => [
-                'GET|HEAD',
-                [Router::METHOD_POST, Router::METHOD_PUT],
-            ],
-            'path' => '/multiple-methods',
-            'handler' => $route3->handler(),
-            'settings' => null,
-            'urls' => [
-                [
-                    'url' => '/multiple-methods',
-                    'methods' => [
-                        Router::METHOD_DELETE => null,
-                        Router::METHOD_GET => $route3,
-                        Router::METHOD_HEAD => $route3,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => $route3,
-                        Router::METHOD_PUT => $route3,
-                    ],
-                ],
-            ],
-        ];
-
-        // round four test whether paths is end with slash
-        $route4 = new Route();
-        $route4->setHandler('slash');
-        $route4WithSlash = clone $route4;
-        $route4WithSlash->setIsEndWithSlash(true);
-        $routes[] = [
-            'methods' => [Router::METHOD_GET],
-            'path' => '/slash',
-            'handler' => $route4->handler(),
-            'settings' => null,
-            'urls' => [
-                [
-                    'url' => '/slash',
-                    'methods' => [
-                        Router::METHOD_GET => $route4,
-                    ],
-                ],
-                [
-                    'url' => '/slash/', // end with slash
-                    'methods' => [
-                        Router::METHOD_GET => $route4WithSlash,
-                    ],
-                ],
-            ],
-        ];
-
-        // round five
-        $route5 = new Route();
-        $route5->setHandler('get user list or add user');
-        $routes[] = [
-            'methods' => [Router::METHOD_GET, Router::METHOD_POST],
-            'path' => '/users',
-            'handler' => $route5->handler(),
-            'settings' => null,
-            'urls' => [
-                [
-                    'url' => '/users',
-                    'methods' => [
-                        Router::METHOD_DELETE => null,
-                        Router::METHOD_GET => $route5,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => $route5,
-                        Router::METHOD_PUT => null,
-                    ],
-                ],
-            ],
-        ];
-
-        // round six with named parameter placeholder
-        $route6 = new Route();
-        $route6->setHandler('delete/get/update user profile');
-        $route6->setParams(['user_id' => '1']);
-        $routes[] = [ //
-            'methods' => [Router::METHOD_DELETE, Router::METHOD_GET, Router::METHOD_PUT],
-            'path' => '/users/<user_id:\d+>',
-            'handler' => $route6->handler(),
-            'settings' => [],
-            'urls' => [
-                [
-                    'url' => '/users/1',
-                    'methods' => [
-                        Router::METHOD_DELETE => $route6,
-                        Router::METHOD_GET => $route6,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => null,
-                        Router::METHOD_PUT => $route6,
-                    ],
-                ],
-                [
-                    'url' => '/users/foo',
-                    'methods' => [
-                        Router::METHOD_DELETE => null,
-                        Router::METHOD_GET => null,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => null,
-                        Router::METHOD_PUT => null,
-                    ],
-                ],
-            ],
-        ];
-
-        // round seven with multiple named parameters placeholder
-        $route7 = new Route();
-        $route7->setParams(['user_id' => '2', 'year' => '2017', 'month' => '09', 'title' => 'first-post']);
-        $route7->setHandler("delete/get/update user's post");
-        $routes[] = [
-            'methods' => [Router::METHOD_DELETE, Router::METHOD_GET, Router::METHOD_PUT],
-            'path' => '/users/<user_id:\d+>/posts/<year:\d{4}>/<month:\d{2}>/<title>',
-            'handler' => $route7->handler(),
-            'settings' => [],
-            'urls' => [
-                [
-                    'url' => '/users/2/posts/2017/09/first-post',
-                    'methods' => [
-                        Router::METHOD_DELETE => $route7,
-                        Router::METHOD_GET => $route7,
-                        Router::METHOD_HEAD => null,
-                        Router::METHOD_OPTIONS => null,
-                        Router::METHOD_PATCH => null,
-                        Router::METHOD_POST => null,
-                        Router::METHOD_PUT => $route7,
-                    ],
-                ],
-            ],
-        ];
-
-        return $routes;
     }
 }
