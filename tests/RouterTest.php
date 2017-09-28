@@ -3,7 +3,6 @@
 use PHPUnit\Framework\TestCase;
 use DevLibs\Routing\Router;
 use DevLibs\Routing\Route;
-use DevLibs\Routing\RouteInterface;
 
 class RouterTest extends TestCase
 {
@@ -308,10 +307,22 @@ class RouterTest extends TestCase
         $route = new Route();
         $route->setHandler('slashes1');
         $router->get('/slashes1', $route->handler());
-        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, 'slashes1')->handler());
-        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, 'slashes1/')->handler());
-        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, '/slashes1')->handler());
-        $this->assertEquals($route->handler(), $router->dispatch(Router::METHOD_GET, '/slashes1/')->handler());
+
+        $res1 = $router->dispatch(Router::METHOD_GET, 'slashes1');
+        $this->assertEquals($route->handler(), $res1->handler());
+        $this->assertEquals(false, $res1->isEndWithSlash());
+
+        $res2 = $router->dispatch(Router::METHOD_GET, 'slashes1/');
+        $this->assertEquals($route->handler(), $res2->handler());
+        $this->assertEquals(true, $res2->isEndWithSlash());
+
+        $res3 = $router->dispatch(Router::METHOD_GET, '/slashes1');
+        $this->assertEquals($route->handler(), $res3->handler());
+        $this->assertEquals(false, $res3->isEndWithSlash());
+
+        $res4 = $router->dispatch(Router::METHOD_GET, '/slashes1/');
+        $this->assertEquals($route->handler(), $res4->handler());
+        $this->assertEquals(true, $res4->isEndWithSlash());
     }
 
     /**
@@ -387,17 +398,21 @@ class RouterTest extends TestCase
     public function testNestedRouter($router)
     {
         // group backend
-        $groupBackend = $router->group('admin');
+        $groupBackend = $router->group('admin', ['interval' => 5]);
         $backendRoute = new Route();
         $backendRoute->setHandler('backend panel');
         $groupBackend->get('/', $backendRoute->handler());
-        $this->assertEquals($backendRoute->handler(), $router->dispatch(Router::METHOD_GET, '/admin')->handler());
+        $res1 = $router->dispatch(Router::METHOD_GET, '/admin');
+        $this->assertEquals($backendRoute->handler(), $res1->handler());
+        $this->assertEquals(['interval' => 5], $res1->settings());
 
-        $groupUser = $groupBackend->group('users');
+        $groupUser = $groupBackend->group('users', ['timeout' => 60]);
         $userListRoute = new Route();
         $userListRoute->setHandler('user list');
         $groupUser->get('/', $userListRoute->handler());
-        $this->assertEquals($userListRoute->handler(), $router->dispatch(Router::METHOD_GET, '/admin/users')->handler());
+        $res2 = $router->dispatch(Router::METHOD_GET, '/admin/users');
+        $this->assertEquals($userListRoute->handler(), $res2->handler());
+        $this->assertEquals(['interval' => 5, 'timeout' => 60], $res2->settings());
     }
 
     /**
