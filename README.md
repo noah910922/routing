@@ -1,7 +1,19 @@
 # PHP Router
 
-A fast and high scalable HTTP router for PHP..
+[![Build Status](https://travis-ci.org/devlibs/routing.svg?branch=master)](https://travis-ci.org/devlibs/routing)
+[![Coverage Status](https://coveralls.io/repos/github/devlibs/routing/badge.svg?branch=master)](https://coveralls.io/github/devlibs/routing?branch=master)
 
+
+A fast and high scalable and flexible HTTP router for PHP.
+
+
+## Features
+
+- **Unlimited nested grouping router**
+- Easy to design **RESTful API**
+- **High scalable and flexible**
+- **Full Tests**
+- No third-party library dependencies
 
 ## Requirements
 
@@ -11,26 +23,18 @@ A fast and high scalable HTTP router for PHP..
 ## Install
 
 ```
-composer require devlibs/php-router:dev-master
+composer require devlibs/routing:dev-master
 ```
 
 Please add the following repository into `repositories` when `composer` complains about
-that `Could not find package devlibs/php-router ...`.
+that `Could not find package devlibs/routing ...`.
 
 ```
 {
     "type": "git",
-    "url": "https://github.com/devlibs/php-router.git"
+    "url": "https://github.com/devlibs/routing.git"
 }
 ```
-
-
-## Features
-
-- **Grouping router**
-- Friendly to **RESTful API**
-- No third-party library dependencies
-- High scalable
 
 
 ## Usage
@@ -67,3 +71,14 @@ $requestPath = 'users/foo';
 // ];
 $route = $router->dispatch($requestMethod, $requestPath);
 ```
+
+### Grouping Router
+
+
+### Params Placeholder
+
+
+### RESTful API
+
+
+### Scalable
