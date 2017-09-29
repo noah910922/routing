@@ -93,15 +93,6 @@ class RouterTest extends TestCase
                 case Router::METHOD_GET:
                     $router->get($path, $method);
                     break;
-                case Router::METHOD_HEAD:
-                    $router->head($path, $method);
-                    break;
-                case Router::METHOD_OPTIONS:
-                    $router->options($path, $method);
-                    break;
-                case Router::METHOD_PATCH:
-                    $router->patch($path, $method);
-                    break;
                 case Router::METHOD_POST:
                     $router->post($path, $method);
                     break;

@@ -1,24 +1,20 @@
-# PHP Router
+# PHP Router [![Build Status](https://travis-ci.org/devlibs/routing.svg?branch=master)](https://travis-ci.org/devlibs/routing) [![Coverage Status](https://coveralls.io/repos/github/devlibs/routing/badge.svg?branch=master)](https://coveralls.io/github/devlibs/routing?branch=master)
 
-[![Build Status](https://travis-ci.org/devlibs/routing.svg?branch=master)](https://travis-ci.org/devlibs/routing)
-[![Coverage Status](https://coveralls.io/repos/github/devlibs/routing/badge.svg?branch=master)](https://coveralls.io/github/devlibs/routing?branch=master)
-
-
-A fast and flexible HTTP router for PHP.
-
+A fast, flexible and scalable HTTP router for PHP.
 
 ## Features
 
 - **Unlimited nested grouping router**
-- Easy to design **RESTful API**
-- **High scalable and flexible**
+- **Easy to design RESTful API**
 - **Full Tests**
-- No third-party library dependencies
+- **Flexible and scalable**
+- **No third-party library dependencies**
+- **Named Param Placeholder**
+- **Detect all request methods of the specify path**
 
 ## Requirements
 
 - PHP >= 5.4
-
 
 ## Install
 
@@ -26,18 +22,40 @@ A fast and flexible HTTP router for PHP.
 composer require devlibs/routing:dev-master
 ```
 
-Please add the following repository into `repositories` when `composer` complains about
-that `Could not find package devlibs/routing ...`.
+## Documentation
 
+```php
+include '/path-to-vendor/autoload.php';
+
+use DevLibs\Routing\Router;
+
+// create an router instance
+$router = new Router();
 ```
-{
-    "type": "git",
-    "url": "https://github.com/devlibs/routing.git"
-}
+
+### Register handler
+
+```php
+Router::handle($method, $path, $handler, $settings = null);
 ```
 
+- $method - `string`/`array`, case-sensitive, such as `GET`, `GET|POST`, `['GET', 'POST']`.
+- $path - the path `MUST` start with slash `/`, such as `/`, `/users`, `/users/<username>`.
+- $handler - `mixed`, whatever you want.
+- $settings - user-defined settings.
 
-## Usage
+Examples
+
+| Method            | Path                           | Handler | Matches URLs                                          |
+|:------------------|:-------------------------------|:--------|:------------------------------------------------------|
+| GET               | /                              | any     | ``, `/`                                               |
+
+This library also provides a few shortcuts for registering handler:
+
+- Router::delete
+- Router::get
+- Router::post
+- Router::put
 
 ```
 use DevLibs\Routing\Router;
@@ -52,7 +70,7 @@ $router->handle('GET', $path, 'hello world');
 $url = '/';
 $route = $
 ```
-
+```
 // RESTful API
 $router->get('users', 'users list'); // GET "users" matched
 $router->post('users', 'create user account'); // POST "users" matched
@@ -89,3 +107,18 @@ $route = $router->dispatch($requestMethod, $requestPath);
 
 
 ### Scalable
+
+
+## FAQ
+
+### Package Not Found
+
+Please add the following repository into `repositories` when `composer` complains about
+that `Could not find package devlibs/routing ...`.
+
+```json
+{
+    "type": "git",
+    "url": "https://github.com/devlibs/routing.git"
+}
+```

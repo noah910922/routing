@@ -237,48 +237,6 @@ class Router
     }
 
     /**
-     * A shortcut for registering a handler to handle HEAD request.
-     *
-     * @see handle()
-     *
-     * @param $path
-     * @param $handler
-     * @param null|array $setting
-     */
-    public function head($path, $handler, $setting = null)
-    {
-        $this->handle(self::METHOD_HEAD, $path, $handler, $setting);
-    }
-
-    /**
-     * A shortcut for registering a handler to handle OPTIONS request.
-     *
-     * @see handle()
-     *
-     * @param $path
-     * @param $handler
-     * @param null|array $setting
-     */
-    public function options($path, $handler, $setting = null)
-    {
-        $this->handle(self::METHOD_OPTIONS, $path, $handler, $setting);
-    }
-
-    /**
-     * A shortcut for registering a handler to handle PATCH request.
-     *
-     * @see handle()
-     *
-     * @param $path
-     * @param $handler
-     * @param null|array $setting
-     */
-    public function patch($path, $handler, $setting = null)
-    {
-        $this->handle(self::METHOD_PATCH, $path, $handler, $setting);
-    }
-
-    /**
      * A shortcut for registering a handler to handle POST request.
      *
      * @see handle()
