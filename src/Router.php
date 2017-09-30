@@ -9,6 +9,11 @@ class Router
     const SLASH = '/';
 
     /**
+     * @var string request method CONNECT.
+     */
+    const METHOD_CONNECT = 'CONNECT';
+
+    /**
      * @var string request method DELETE.
      */
     const METHOD_DELETE = 'DELETE';
@@ -44,11 +49,16 @@ class Router
     const METHOD_PUT = 'PUT';
 
     /**
+     * @var string request method TRACE.
+     */
+    const METHOD_TRACE = 'TRACE';
+
+    /**
      * @var array a set of request methods.
-     * @see any()
      * @see getAllowMethods()
      */
     public static $methods = [
+        self::METHOD_CONNECT,
         self::METHOD_DELETE,
         self::METHOD_GET,
         self::METHOD_HEAD,
@@ -56,6 +66,7 @@ class Router
         self::METHOD_PATCH,
         self::METHOD_POST,
         self::METHOD_PUT,
+        self::METHOD_TRACE,
     ];
 
     /**
@@ -191,21 +202,6 @@ class Router
 
         // set combinedPattern as null when routes has been changed.
         $this->combinedPattern = null;
-    }
-
-    /**
-     * A shortcut for registering a handler to handle any request, in default,
-     * all @see methods will be register, you can change it in need.
-     *
-     * @see handle()
-     *
-     * @param $path
-     * @param $handler
-     * @param null|array $setting
-     */
-    public function any($path, $handler, $setting = null)
-    {
-        $this->handle(self::$methods, $path, $handler, $setting);
     }
 
     /**

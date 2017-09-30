@@ -202,26 +202,6 @@ class RouterTest extends TestCase
      *
      * @param Router $router
      */
-    public function testAny($router)
-    {
-        $route = new Route();
-        $route->setHandler('any');
-
-        $router->any('/any', $route->handler());
-
-        foreach (Router::$methods as $method) {
-            $this->assertEquals($route->handler(), $router->dispatch($method, '/any')->handler());
-        }
-    }
-
-    /**
-     * @covers  DevLibs\Routing\Router
-     * @covers  DevLibs\Routing\Route
-     *
-     * @depends clone testEmptyRouter
-     *
-     * @param Router $router
-     */
     public function testDispatch($router)
     {
         // no patterns
@@ -258,7 +238,7 @@ class RouterTest extends TestCase
         $this->assertEquals([Router::METHOD_GET, Router::METHOD_POST], $router->getAllowMethods($path));
 
         // round five
-        $router->any('/any', 'any');
+        $router->handle(Router::$methods, '/any', 'any');
         $this->assertEquals(Router::$methods, $router->getAllowMethods('/any'));
 
         // round six
