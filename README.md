@@ -46,11 +46,14 @@ Router::handle($method, $path, $handler, $settings = null);
 
 Examples
 
-| Method            | Path                           | Handler | Matches URLs                                          |
-|:------------------|:-------------------------------|:--------|:------------------------------------------------------|
-| GET               | /                              | any     | ``, `/`                                               |
+| Method            | Path                           | Handler | Matched                            | Unmatched                              |
+|:------------------|:-------------------------------|:--------|:-----------------------------------|----------------------------------------|
+| GET               | /                              | any     | `GET /`                            | `POST /`, `get /`                      |
+| GET/POST          | /users                         | any     | `GET /users`, `POST /users`        |                                        |
+| ['GET', 'POST']   | /posts                         | any     | `GET /posts`, `POST /posts`        |                                        |
+| GET               | /users/<username>              | any     | `GET /users/foo`, `GET /users/bar` |                                        |
 
-This library also provides a few shortcuts for registering handler:
+We also provides a few shortcuts for registering handler:
 
 - Router::delete
 - Router::get
