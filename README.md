@@ -56,10 +56,18 @@ Examples
 
 We also provides a few shortcuts for registering handler:
 
-- Router::delete
-- Router::get
-- Router::post
-- Router::put
+- `Router::delete`
+- `Router::get`
+- `Router::post`
+- `Router::put`
+
+```php
+$router->get('/', 'handler');
+$router->handle('GET|POST', '/users', 'handler');
+$router->handle(['GET', 'POST'], '/posts', 'handler');
+$router->get('/users/<username>', 'handler');
+$router->get('/orders/<order_id:\d+>', 'handler');
+```
 
 ```
 use DevLibs\Routing\Router;
