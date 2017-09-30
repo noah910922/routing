@@ -46,13 +46,13 @@ Router::handle($method, $path, $handler, $settings = null);
 
 Examples
 
-| Method            | Path                           | Handler | Matched                            | Unmatched                              |
-|:------------------|:-------------------------------|:--------|:-----------------------------------|----------------------------------------|
-| `GET`             | `/`                            | any     | `GET /`                            | `POST /` `get /`                       |
-| `GET|POST`        | `/users`                       | any     | `GET /users` `POST /users`         |                                        |
-| `['GET', 'POST']` | `/posts`                       | any     | `GET /posts` `POST /posts`         |                                        |
-| `GET`             | `/users/<username>`            | any     | `GET /users/foo` `GET /users/bar`  |                                        |
-| `GET`             | `/orders/<order_id:\d+>`       | any     | `GET /orders/123456`               | `GET /orders/letters`                  |
+| Method            | Path                         | Handler | Matched                            | Unmatched                              |
+|:------------------|:-----------------------------|:--------|:-----------------------------------|----------------------------------------|
+| GET               | /                            | any     | `GET /`                            | `POST /` `get /`                       |
+| GET|POST          | /users                       | any     | `GET /users` `POST /users`         |                                        |
+| ['GET', 'POST']   | /posts                       | any     | `GET /posts` `POST /posts`         |                                        |
+| GET               | /users/<username>            | any     | `GET /users/foo` `GET /users/bar`  |                                        |
+| GET               | /orders/<order_id:\d+>       | any     | `GET /orders/123456`               | `GET /orders/letters`                  |
 
 We also provides a few shortcuts for registering handler:
 
