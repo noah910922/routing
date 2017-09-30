@@ -51,7 +51,7 @@ Examples
 | GET               | /                              | any     | `GET /`                            | `POST /`, `get /`                      |
 | GET/POST          | /users                         | any     | `GET /users`, `POST /users`        |                                        |
 | ['GET', 'POST']   | /posts                         | any     | `GET /posts`, `POST /posts`        |                                        |
-| GET               | /users/<username>              | any     | `GET /users/foo`, `GET /users/bar` |                                        |
+| ```GET```               | /users/<username>              | any     | `GET /users/foo`, `GET /users/bar` |                                        |
 
 We also provides a few shortcuts for registering handler:
 
